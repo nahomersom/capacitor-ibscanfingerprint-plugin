@@ -49,10 +49,15 @@ repositories {
 
 
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation fileTree(dir: 'libs', include: ['*.jar','*.aar'])
     implementation project(':capacitor-android')
+    implementation project(path: ':IBScanCommon')
+    implementation project(path: ':IBScanUltimate')
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+//    api project(':ibultimate')
+//    api project(':ibcommon')
+
 }
