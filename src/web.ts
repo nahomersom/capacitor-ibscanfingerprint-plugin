@@ -17,7 +17,7 @@ export class OcraFingerPrintPluginWeb
     return { value:  sum};
   }
 
-  async getDevice(): Promise<{ value: any; }> {
-    return { value: 'Device reader only works on mobile appssss'};
+  async getDevice(): Promise<{ message: any,image:any }> {
+    return { message: 'Device reader only works on mobile appssss',image:'no image found'};
   }
 }
