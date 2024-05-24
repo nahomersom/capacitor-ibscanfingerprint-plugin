@@ -26,6 +26,7 @@ import com.integratedbiometrics.ibscanultimate.IBScanListener;
 
 import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Vector;
 import java.util.concurrent.CountDownLatch;
@@ -34,7 +35,7 @@ import com.integratedbiometrics.ibscanultimate.IBScan.HashType;
 @CapacitorPlugin(name = "OcraFingerPrintPlugin")
 public class OcraFingerPrintPluginPlugin extends Plugin implements IBScanListener, IBScanDeviceListener, ActivityCompat.OnRequestPermissionsResultCallback {
     private boolean isDeviceInitialized = false;
-
+    ArrayList<String> captureStatusMessage = new ArrayList<>();
     private String convertBitmapToBase64(Bitmap bitmap) {
         if (bitmap == null) {
             return null;
@@ -84,7 +85,7 @@ public class OcraFingerPrintPluginPlugin extends Plugin implements IBScanListene
     protected final int DEVICE_LOCKED		= 1;
     protected final int DEVICE_UNLOCKED		= 2;
     private IBScanDevice.ImageData m_lastResultImage;
-    protected String base64FingerPrintImage = "no base64";
+    protected String base64FingerPrintImage = "";
 
     protected String    m_strCustomerKey = "";
     protected String sampleMessage = "";
@@ -131,7 +132,7 @@ public class OcraFingerPrintPluginPlugin extends Plugin implements IBScanListene
         {
 
             m_strImageMessage = "When done remove finger from sensor";
-            captureStatusMessage = m_strImageMessage;
+            captureStatusMessage.add(m_strImageMessage);
         }
     }
 
@@ -148,7 +149,7 @@ public class OcraFingerPrintPluginPlugin extends Plugin implements IBScanListene
 
 
         String base64Result = convertImageDataToBase64(image);
-        base64FingerPrintImage = base64Result != null ? base64Result : "no base64 image";
+        base64FingerPrintImage = base64Result != null ? base64Result : "";
 
         System.out.println("Base64 String: " + base64FingerPrintImage);
         // imageStatus value is greater than "STATUS_OK", Image acquisition successful.
@@ -157,7 +158,7 @@ public class OcraFingerPrintPluginPlugin extends Plugin implements IBScanListene
         {
             if (imageType.equals(IBScanDevice.ImageType.ROLL_SINGLE_FINGER))
             {
-                captureStatusMessage = "first success acquistion";
+                captureStatusMessage.add("first success acquistion");
             }
         }
 
@@ -199,11 +200,11 @@ public class OcraFingerPrintPluginPlugin extends Plugin implements IBScanListene
                     if( ibse.getType().equals(IBScanException.Type.DEVICE_LOCK_ILLEGAL_DEVICE) )
                     {
                         str = "License is not activated";
-                      captureStatusMessage =  "[Error code = " + ibse.getType().toCode() + "]" + str;
+                      captureStatusMessage.add(   "[Error code = " + ibse.getType().toCode() + "]" + str);
                     }
                     else if (ibse.getType().equals(IBScanException.Type.PAD_PROPERTY_DISABLED))
                     {
-                        captureStatusMessage = "PAD Property is not enabled\n(Resource missing)";
+                        captureStatusMessage.add("PAD Property is not enabled\n(Resource missing)");
                     }
                     ibse.printStackTrace();
                 }
@@ -220,7 +221,7 @@ public class OcraFingerPrintPluginPlugin extends Plugin implements IBScanListene
                 // > IBSU_STATUS_OK
                 m_strImageMessage = "Acquisition Warning (Warning code = " + imageStatus.getType().toString() + ")";
                 _SetImageMessage(m_strImageMessage);
-                captureStatusMessage = m_strImageMessage;
+                captureStatusMessage.add(  m_strImageMessage);
                 return;
             }
         }
@@ -229,7 +230,7 @@ public class OcraFingerPrintPluginPlugin extends Plugin implements IBScanListene
             // < IBSU_STATUS_OK
             m_strImageMessage = "Acquisition failed (Error code = " + imageStatus.getType().toString() + ")";
             _SetImageMessage(m_strImageMessage);
-            captureStatusMessage = m_strImageMessage;
+            captureStatusMessage.add(m_strImageMessage);
 
             // Stop all of acquisition
             m_nCurrentCaptureStep = (int)m_vecCaptureSeq.size();
@@ -261,7 +262,7 @@ public class OcraFingerPrintPluginPlugin extends Plugin implements IBScanListene
 
     @Override
     public void deviceWarningReceived(IBScanDevice device, IBScanException warning) {
-captureStatusMessage = "Warning received " + warning.getType().toString();
+captureStatusMessage.add("Warning received " + warning.getType().toString());
     }
 
     @Override
@@ -328,7 +329,7 @@ captureStatusMessage = "Warning received " + warning.getType().toString();
     }
     protected IBScanDevice.ImageType m_ImageType;
     protected String m_SpoofThresLevel;
-    private String captureStatusMessage = "first capture message";
+
 
     private IBScanDevice m_ibScanDevice;
     protected boolean 	m_bBlank = false;
@@ -394,15 +395,13 @@ captureStatusMessage = "Warning received " + warning.getType().toString();
                 if (m_nDeviceLockState == DEVICE_LOCKED || m_nDeviceLockState == DEVICE_KEY_INVALID) {
                     if (m_strCustomerKey == null || m_strCustomerKey.isEmpty()) { // Check if key is null or empty
                         m_bInitializing = false;
-                        captureStatusMessage = "Customer key not inserted";
-                        Log.e("FingerprintPlugin", captureStatusMessage);
+                        captureStatusMessage.add("Customer key not inserted");
                         return;
                     } else { // Try to unlock with customer key
                         try {
                             getIBScan().setCustomerKey(this.devIndex, HashType.SHA256, m_strCustomerKey);
                         } catch (IBScanException ibse) {
-                            captureStatusMessage = "setCustomerKey returned exception " + ibse.getType().toString() + ".";
-                            Log.e("FingerprintPlugin", captureStatusMessage);
+                            captureStatusMessage.add("setCustomerKey returned exception " + ibse.getType().toString() + ".");
                             return;
                         }
                     }
@@ -410,11 +409,9 @@ captureStatusMessage = "Warning received " + warning.getType().toString();
 
                 IBScanDevice ibScanDeviceNew = getIBScan().openDevice(this.devIndex);
                 setIBScanDevice(ibScanDeviceNew);
-                captureStatusMessage = "Device initialized successfully";
-                Log.d("FingerprintPlugin", captureStatusMessage);
+                captureStatusMessage.add("Device initialized successfully");
             } catch (IBScanException ibse) {
-                captureStatusMessage = "Failed to initialize device: " + ibse.getType().toString();
-                Log.e("FingerprintPlugin", captureStatusMessage);
+                captureStatusMessage.add("Failed to initialize device: " + ibse.getType().toString());
             } finally {
                 m_bInitializing = false;
             }
@@ -423,46 +420,47 @@ captureStatusMessage = "Warning received " + warning.getType().toString();
 
     @PluginMethod()
     public void getDevice(PluginCall call) {
+        captureStatusMessage.clear();
+
         JSObject ret = new JSObject();
 
-        // Check if the device is already initialized and opened
-        if (getIBScanDevice() == null || !getIBScanDevice().isOpened()) {
-            toggleCometReader(true);
-            Context context = getContext();
+        toggleCometReader(true);
+        Context context = getContext();
 
-            // Initialize IBScan instance
-            m_ibScan = IBScan.getInstance(context);
-            if (m_ibScan == null) {
-                Log.e("FingerprintPlugin", "Failed to get IBScan instance.");
-                ret.put("value", "Failed to get IBScan instance.");
-                call.resolve(ret);
-                return;
-            }
-            m_ibScan.setScanListener(this);
+        // Initialize IBScan instance
+        m_ibScan = IBScan.getInstance(context);
+        if (m_ibScan == null) {
+            Log.e("FingerprintPlugin", "Failed to get IBScan instance.");
+            captureStatusMessage.add("Failed to get IBScan instance.");
+            ret.put("message", captureStatusMessage.toString());
+            call.resolve(ret);
+            return;
+        }
+        m_ibScan.setScanListener(this);
 
-            UsbManager usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
-            HashMap<String, UsbDevice> deviceList = usbManager.getDeviceList();
+        UsbManager usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
+        HashMap<String, UsbDevice> deviceList = usbManager.getDeviceList();
 
-            if (deviceList.isEmpty()) {
-                // No devices found
-                ret.put("value", "No devices found!!!");
-                call.resolve(ret);
-                return;
-            }
+        if (deviceList.isEmpty()) {
+            // No devices found
+            captureStatusMessage.add("No devices found!!!");
+            ret.put("message", captureStatusMessage.toString());
+            call.resolve(ret);
+            return;
+        }
 
-            // Get the first device found
-            UsbDevice firstDevice = deviceList.values().iterator().next();
-            Log.d("FingerprintPlugin", "Device found: " + firstDevice.getDeviceName());
-            final boolean isScanDevice = IBScan.isScanDevice(firstDevice);
-            if (isScanDevice) {
-                samplePermissionMessage = "is scan device checking permission";
-                final boolean hasPermission = usbManager.hasPermission(firstDevice);
-                if (!hasPermission) {
-                    captureStatusMessage = "scan no permission for " + firstDevice.getDeviceId();
-                    m_ibScan.requestPermission(firstDevice.getDeviceId());
-                } else {
-                    samplePermissionMessage = "scan yes permission";
-                }
+        // Get the first device found
+        UsbDevice firstDevice = deviceList.values().iterator().next();
+        Log.d("FingerprintPlugin", "Device found: " + firstDevice.getDeviceName());
+        final boolean isScanDevice = IBScan.isScanDevice(firstDevice);
+        if (isScanDevice) {
+            samplePermissionMessage = "is scan device checking permission";
+            final boolean hasPermission = usbManager.hasPermission(firstDevice);
+            if (!hasPermission) {
+                captureStatusMessage.add("scan no permission for " + firstDevice.getDeviceId());
+                m_ibScan.requestPermission(firstDevice.getDeviceId());
+            } else {
+                samplePermissionMessage = "scan yes permission";
             }
         }
 
@@ -486,15 +484,15 @@ captureStatusMessage = "Warning received " + warning.getType().toString();
                     }
 
                     if (getIBScan() == null) {
-                        ret.put("message", "no device found " + captureStatusMessage);
+                        ret.put("message", captureStatusMessage.toString());
                         call.resolve(ret);
                         return;
                     }
-                    base64FingerPrintImage = "no base64 image found";
+                    base64FingerPrintImage = "";
                     m_vecCaptureSeq.clear();
                     if (!isDeviceInitialized) {
                         // Initialization failed
-                        ret.put("message", "custom exception message " + captureStatusMessage);
+                        ret.put("message", captureStatusMessage.toString());
                         call.resolve(ret);
                         return;
                     }
@@ -510,21 +508,32 @@ captureStatusMessage = "Warning received " + warning.getType().toString();
                     // Wait for the capture to complete and get the Base64 string
                     Thread.sleep(1000); // Adjust the delay as needed for the capture process
 
-                    ret.put("message", captureStatusMessage);
+                    ret.put("message", captureStatusMessage.toString());
                     ret.put("image", base64FingerPrintImage);
-
                     call.resolve(ret);
+
                 } catch (InterruptedException e) {
                     e.printStackTrace();
-                    ret.put("message", "Capture was interrupted: " + e.toString());
+                    captureStatusMessage.add(e.toString());
+                    ret.put("message", captureStatusMessage.toString());
                     call.resolve(ret);
                 } catch (Exception e) {
                     e.printStackTrace();
                     Log.e("value", "Unexpected error: " + e.toString());
-
-                    ret.put("message", captureStatusMessage + " Unexpected error: " + e.toString());
-                    ret.put("base64Image", "");
+                    captureStatusMessage.add(e.toString());
+                    ret.put("message", captureStatusMessage.toString());
+                    ret.put("image", "");
                     call.resolve(ret);
+                } finally {
+                    try {
+                        _ReleaseDevice();
+                    } catch (IBScanException e) {
+                        captureStatusMessage.add(e.toString());
+                        ret.put("message", captureStatusMessage.toString());
+                        ret.put("image", "");
+                        call.resolve(ret);
+                        throw new RuntimeException(e);
+                    }
                 }
             }
         });
@@ -545,25 +554,25 @@ captureStatusMessage = "Warning received " + warning.getType().toString();
                 if (m_nDeviceLockState == DEVICE_LOCKED || m_nDeviceLockState == DEVICE_KEY_INVALID) {
                     if (m_strCustomerKey.isEmpty()) {
                         m_bInitializing = false;
-                        captureStatusMessage = "Customer key not inserted";
+                        captureStatusMessage.add("Customer key not inserted");
                         return;
                     } else {
                         try {
                             getIBScan().setCustomerKey(devIndex, HashType.SHA256, m_strCustomerKey);
                         } catch (IBScanException ibse) {
-                            captureStatusMessage = "setCustomerKey returned exception " + ibse.getType().toString() + ".";
+                            captureStatusMessage.add("setCustomerKey returned exception " + ibse.getType().toString() + ".");
                         }
                     }
                 }
 
-                captureStatusMessage = "initializing device with device " + m_ibScan.toString();
+                captureStatusMessage.add("initializing device with device " + m_ibScan.toString());
 
                 IBScanDevice ibScanDeviceNew = getIBScan().openDevice(devIndex);
                 if (ibScanDeviceNew == null) {
-                    captureStatusMessage = "no ib scan device found ibscandevice new";
+                    captureStatusMessage.add("no ib scan device found ibscandevice new");
                 } else {
                     setIBScanDevice(ibScanDeviceNew);
-                    captureStatusMessage = "Device initialized successfully";
+                    captureStatusMessage.add("Device initialized successfully");
                     isDeviceInitialized = true;
                 }
                 m_bInitializing = false;
@@ -573,22 +582,22 @@ captureStatusMessage = "Warning received " + warning.getType().toString();
 
                 switch (ibse.getType()) {
                     case DEVICE_ACTIVE:
-                        captureStatusMessage = "[Error Code =-203] Device initialization failed because in use by another thread/process.";
+                        captureStatusMessage.add("[Error Code =-203] Device initialization failed because in use by another thread/process.");
                         break;
                     case USB20_REQUIRED:
-                        captureStatusMessage = "[Error Code =-209] Device initialization failed because SDK only works with USB 2.0.";
+                        captureStatusMessage.add("[Error Code =-209] Device initialization failed because SDK only works with USB 2.0.");
                         break;
                     case DEVICE_HIGHER_SDK_REQUIRED:
                         try {
                             String m_minSDKVersion = getIBScan().getRequiredSDKVersion(devIndex);
-                            captureStatusMessage = "[Error Code =-214] Device initialization failed because SDK Version " + m_minSDKVersion + " is required at least.";
+                            captureStatusMessage.add("[Error Code =-214] Device initialization failed because SDK Version " + m_minSDKVersion + " is required at least.");
                         } catch (IBScanException ibse1) {
-                            captureStatusMessage = "Failed to get required SDK version.";
+                            captureStatusMessage.add("Failed to get required SDK version.");
                         }
                         break;
                     default:
                         try {
-                            captureStatusMessage = "[Error code = " + ibse.getType().toCode() + "] Device initialization failed. " + getIBScan().getErrorString(ibse.getType().toCode());
+                            captureStatusMessage.add("[Error code = " + ibse.getType().toCode() + "] Device initialization failed. " + getIBScan().getErrorString(ibse.getType().toCode()));
                         } catch (IBScanException e) {
                             e.printStackTrace();
                         }
@@ -606,9 +615,10 @@ captureStatusMessage = "Warning received " + warning.getType().toString();
         }
 
         if (!isDeviceInitialized) {
-            captureStatusMessage = "Failed to initialize device after " + maxRetries + " retries.";
+            captureStatusMessage.add("Failed to initialize device after " + maxRetries + " retries.");
         }
     }
+
 
     protected void _ReleaseDevice() throws IBScanException
     {
@@ -654,7 +664,7 @@ captureStatusMessage = "Warning received " + warning.getType().toString();
     }
     private void OnMsg_CaptureSeqNext() {
         if (getIBScanDevice() == null) {
-            captureStatusMessage = "no device ib device found dude!!";
+            captureStatusMessage.add("no device ib device found dude!!");
             return;
         };
 
@@ -666,7 +676,7 @@ captureStatusMessage = "Warning received " + warning.getType().toString();
         m_nCurrentCaptureStep++;
         if (m_nCurrentCaptureStep >= m_vecCaptureSeq.size()) {
             // All of capture sequence completely
-            captureStatusMessage = "Capture sequence completed";
+            captureStatusMessage.add("Capture sequence completed");
             m_nCurrentCaptureStep = -1;
             return;
         }
@@ -678,7 +688,7 @@ captureStatusMessage = "Warning received " + warning.getType().toString();
             if (m_nCurrentCaptureStep > 0) {
                 _Sleep(500);
                 m_strImageMessage = "";
-                captureStatusMessage = "on timer";
+                captureStatusMessage.add("on timer");
             }
 
             CaptureInfo info = m_vecCaptureSeq.elementAt(m_nCurrentCaptureStep);
@@ -686,7 +696,7 @@ captureStatusMessage = "Warning received " + warning.getType().toString();
             IBScanDevice.ImageResolution imgRes = IBScanDevice.ImageResolution.RESOLUTION_500;
             boolean bAvailable = getIBScanDevice().isCaptureAvailable(info.ImageType, imgRes);
             if (!bAvailable) {
-                captureStatusMessage = "The capture mode (" + info.ImageType + ") is not available";
+                captureStatusMessage.add("The capture mode (" + info.ImageType + ") is not available");
                 m_nCurrentCaptureStep = -1;
                 return;
             }
@@ -696,13 +706,13 @@ captureStatusMessage = "Warning received " + warning.getType().toString();
             getIBScanDevice().beginCaptureImage(info.ImageType, imgRes, captureOptions);
 
             String strMessage = info.PreCaptureMessage;
-            captureStatusMessage = strMessage;
+            captureStatusMessage.add(strMessage);
             m_strImageMessage = strMessage;
             m_ImageType = info.ImageType;
 
         } catch (IBScanException ibse) {
             ibse.printStackTrace();
-            captureStatusMessage = "Failed to execute beginCaptureImage()";
+            captureStatusMessage.add("Failed to execute beginCaptureImage()");
             m_nCurrentCaptureStep = -1;
         }
     }

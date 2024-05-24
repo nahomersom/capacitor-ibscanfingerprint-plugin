@@ -55,10 +55,10 @@ testPluginMethod(options: { number1: any; number2: any; }) => Promise<{ value: a
 ### getDevice()
 
 ```typescript
-getDevice() => Promise<{ image: string; message: string; }>
+getDevice() => Promise<{ image: string; message: any; }>
 ```
 
-**Returns:** <code>Promise&lt;{ image: string; message: string; }&gt;</code>
+**Returns:** <code>Promise&lt;{ image: string; message: any; }&gt;</code>
 
 --------------------
 
